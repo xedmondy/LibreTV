@@ -164,12 +164,24 @@ async function fetchContentWithType(targetUrl, requestHeaders) {
             throw err; // 抛出错误
         }
 
-        // 读取响应内容
-        const content = await response.text();
         const contentType = response.headers.get('content-type') || '';
+        const typeMain = contentType.split(';')[0].trim().toLowerCase();
+        const isBinary =
+            typeMain.startsWith('image/') ||
+            typeMain.startsWith('video/') ||
+            typeMain.startsWith('audio/') ||
+            typeMain === 'application/octet-stream' ||
+            /\.(jpe?g|png|gif|webp|bmp|avif|ico)(\?|$)/i.test(targetUrl);
+
+        if (isBinary) {
+            const content = Buffer.from(await response.arrayBuffer());
+            logDebug(`请求成功(二进制): ${targetUrl}, Content-Type: ${contentType}, 字节: ${content.length}`);
+            return { content, contentType, responseHeaders: response.headers, binary: true };
+        }
+
+        const content = await response.text();
         logDebug(`请求成功: ${targetUrl}, Content-Type: ${contentType}, 内容长度: ${content.length}`);
-        // 返回结果
-        return { content, contentType, responseHeaders: response.headers };
+        return { content, contentType, responseHeaders: response.headers, binary: false };
 
     } catch (error) {
         // 捕获 fetch 本身的错误（网络、超时等）或上面抛出的 HTTP 错误
@@ -413,7 +425,18 @@ export default async function handler(req, res) {
         console.info(`开始处理目标 URL 的代理请求: ${targetUrl}`);
 
         // --- 获取并处理目标内容 ---
-        const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl, req.headers);
+        const { content, contentType, responseHeaders, binary } = await fetchContentWithType(targetUrl, req.headers);
+
+        if (binary) {
+            console.info(`直接返回二进制: ${targetUrl}, 类型: ${contentType}`);
+            res.status(200)
+                .setHeader('Content-Type', (contentType || 'application/octet-stream').split(';')[0].trim())
+                .setHeader('Cache-Control', `public, max-age=${CACHE_TTL}`)
+                .removeHeader('content-encoding')
+                .removeHeader('content-length')
+                .send(content);
+            return;
+        }
 
         // --- 如果是 M3U8，处理并返回 ---
         if (isM3u8Content(content, contentType)) {
