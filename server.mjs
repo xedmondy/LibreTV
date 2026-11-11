@@ -235,16 +235,19 @@ app.use((req, res) => {
   res.status(404).send('页面未找到');
 });
 
-// 启动服务器
-app.listen(config.port, () => {
-  console.log(`服务器运行在 http://localhost:${config.port}`);
-  if (config.password !== '') {
-    console.log('用户登录密码已设置');
-  } else {
-    console.log('警告: 未设置 PASSWORD 环境变量，用户将被要求设置密码');
-  }
-  if (config.debug) {
-    console.log('调试模式已启用');
-    console.log('配置:', { ...config, password: config.password ? '******' : '' });
-  }
-});
+export default app;
+
+if (!process.env.VERCEL) {
+  app.listen(config.port, () => {
+    console.log(`服务器运行在 http://localhost:${config.port}`);
+    if (config.password !== '') {
+      console.log('用户登录密码已设置');
+    } else {
+      console.log('警告: 未设置 PASSWORD 环境变量，用户将被要求设置密码');
+    }
+    if (config.debug) {
+      console.log('调试模式已启用');
+      console.log('配置:', { ...config, password: config.password ? '******' : '' });
+    }
+  });
+}
