@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // 默认选中过滤开关
         localStorage.setItem('yellowFilterEnabled', 'true');
+        localStorage.setItem('aiShortFilterEnabled', 'true');
         localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true');
 
         // 默认启用豆瓣功能
@@ -46,6 +47,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
     if (yellowFilterToggle) {
         yellowFilterToggle.checked = localStorage.getItem('yellowFilterEnabled') === 'true';
+    }
+
+    const aiShortFilterToggle = document.getElementById('aiShortFilterToggle');
+    if (aiShortFilterToggle) {
+        aiShortFilterToggle.checked = localStorage.getItem('aiShortFilterEnabled') !== 'false';
     }
 
     // 设置广告过滤开关初始状态
@@ -549,6 +555,13 @@ function setupEventListeners() {
         });
     }
 
+    const aiShortFilterToggleBind = document.getElementById('aiShortFilterToggle');
+    if (aiShortFilterToggleBind) {
+        aiShortFilterToggleBind.addEventListener('change', function (e) {
+            localStorage.setItem('aiShortFilterEnabled', e.target.checked);
+        });
+    }
+
     // 广告过滤开关事件绑定
     const adFilterToggle = document.getElementById('adFilterToggle');
     if (adFilterToggle) {
@@ -725,6 +738,19 @@ async function search() {
             allResults = allResults.filter(item => {
                 const typeName = item.type_name || '';
                 return !banned.some(keyword => typeName.includes(keyword));
+            });
+        }
+
+        // 过滤 AI 短剧 / 微短剧 / 解说 / 预告片（默认开启）
+        if (localStorage.getItem('aiShortFilterEnabled') !== 'false') {
+            const aiBanned = [
+                'AI短剧', 'AI剧', 'AIGC', 'ai短剧', '智能短剧',
+                '微短剧', '竖屏短剧', '竖屏', '短剧',
+                '电影解说', '影视解说', '解说版', '预告片'
+            ];
+            allResults = allResults.filter(item => {
+                const hay = `${item.type_name || ''} ${item.vod_name || ''} ${item.vod_remarks || ''} ${item.vod_class || ''}`;
+                return !aiBanned.some(keyword => hay.includes(keyword));
             });
         }
 
