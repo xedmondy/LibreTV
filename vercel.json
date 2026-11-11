@@ -1,3 +1,8 @@
 {
-  "framework": "express"
+  "framework": "express",
+  "functions": {
+    "server.mjs": {
+      "includeFiles": "**"
+    }
+  }
 }
