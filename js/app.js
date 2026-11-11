@@ -558,7 +558,10 @@ function setupEventListeners() {
     const aiShortFilterToggleBind = document.getElementById('aiShortFilterToggle');
     if (aiShortFilterToggleBind) {
         aiShortFilterToggleBind.addEventListener('change', function (e) {
-            localStorage.setItem('aiShortFilterEnabled', e.target.checked);
+            localStorage.setItem('aiShortFilterEnabled', e.target.checked ? 'true' : 'false');
+        });
+        aiShortFilterToggleBind.addEventListener('click', function (e) {
+            e.stopPropagation();
         });
     }
 
