@@ -514,6 +514,17 @@ function syncAiShortFilterToggle() {
     if (dot) dot.style.transform = on ? 'translateX(1.5rem)' : 'translateX(0)';
 }
 
+function toggleAiShortFilter(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const next = !isAiShortFilterOn();
+    localStorage.setItem('aiShortFilterEnabled', next ? 'true' : 'false');
+    syncAiShortFilterToggle();
+}
+window.toggleAiShortFilter = toggleAiShortFilter;
+
 function setupEventListeners() {
     // 回车搜索
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
@@ -568,17 +579,10 @@ function setupEventListeners() {
 
     const aiShortFilterRow = document.getElementById('aiShortFilterRow');
     if (aiShortFilterRow) {
-        const toggleAiShort = function (e) {
-            if (e) e.stopPropagation();
-            const next = localStorage.getItem('aiShortFilterEnabled') === 'false';
-            localStorage.setItem('aiShortFilterEnabled', next ? 'true' : 'false');
-            syncAiShortFilterToggle();
-        };
-        aiShortFilterRow.addEventListener('click', toggleAiShort);
         aiShortFilterRow.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                toggleAiShort(e);
+                toggleAiShortFilter(e);
             }
         });
     }

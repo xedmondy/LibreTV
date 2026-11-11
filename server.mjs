@@ -229,7 +229,14 @@ app.get('/proxy/:encodedUrl', async (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname), {
-  maxAge: config.cacheMaxAge
+  maxAge: process.env.VERCEL ? 0 : config.cacheMaxAge,
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    if (process.env.VERCEL) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
 }));
 
 app.use((err, req, res, next) => {

@@ -14,8 +14,8 @@
     <link rel="manifest" href="manifest.json">
     
     <script src="libs/tailwindcss.min.js"></script>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/styles.css?v=20261111d">
+    <link rel="stylesheet" href="css/index.css?v=20261111d">
 </head>
 <body class="page-bg text-white">
     <!-- 将历史记录按钮移到左上角，并缩小尺寸 -->
@@ -144,7 +144,7 @@
                 </div>
                 
                 <!-- AI短剧过滤开关 -->
-                <div id="aiShortFilterRow" role="switch" aria-checked="true" tabindex="0" class="flex items-center justify-between mb-3 pb-3 border-b border-[#222] cursor-pointer select-none">
+                <div id="aiShortFilterRow" role="switch" aria-checked="true" tabindex="0" onclick="toggleAiShortFilter(event)" class="flex items-center justify-between mb-3 pb-3 border-b border-[#222] cursor-pointer select-none">
                     <div>
                         <span class="text-sm font-medium text-gray-400">过滤AI短剧</span>
                         <p class="text-xs text-gray-500 mt-1">隐藏短剧、微短剧、解说、预告片</p>
@@ -425,15 +425,15 @@
         // 保存原始 js‑sha256 实现，避免被 password.js 覆盖
         window._jsSha256 = window.sha256;
     </script>
-    <script src="js/config.js"></script>
-    <script src="js/proxy-auth.js"></script>
-    <script src="js/customer_site.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/douban.js"></script>
-    <script src="js/password.js"></script>
-    <script src="js/search.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/config.js?v=20261111d"></script>
+    <script src="js/proxy-auth.js?v=20261111d"></script>
+    <script src="js/customer_site.js?v=20261111d"></script>
+    <script src="js/ui.js?v=20261111d"></script>
+    <script src="js/api.js?v=20261111d"></script>
+    <script src="js/douban.js?v=20261111d"></script>
+    <script src="js/password.js?v=20261111d"></script>
+    <script src="js/search.js?v=20261111d"></script>
+    <script src="js/app.js?v=20261111d"></script>
 
     <!-- PWA 注册 -->
     <script src="js/pwa-register.js"></script>
