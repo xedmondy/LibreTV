@@ -49,10 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
         yellowFilterToggle.checked = localStorage.getItem('yellowFilterEnabled') === 'true';
     }
 
-    const aiShortFilterToggle = document.getElementById('aiShortFilterToggle');
-    if (aiShortFilterToggle) {
-        aiShortFilterToggle.checked = localStorage.getItem('aiShortFilterEnabled') !== 'false';
-    }
+    syncAiShortFilterToggle();
 
     // 设置广告过滤开关初始状态
     const adFilterToggle = document.getElementById('adFilterToggle');
@@ -503,6 +500,20 @@ function toggleSettings(e) {
 }
 
 // 设置事件监听器
+function isAiShortFilterOn() {
+    return localStorage.getItem('aiShortFilterEnabled') !== 'false';
+}
+
+function syncAiShortFilterToggle() {
+    const on = isAiShortFilterOn();
+    const row = document.getElementById('aiShortFilterRow');
+    const bg = document.getElementById('aiShortFilterBg');
+    const dot = document.getElementById('aiShortFilterDot');
+    if (row) row.setAttribute('aria-checked', on ? 'true' : 'false');
+    if (bg) bg.style.backgroundColor = on ? 'var(--primary-color, #00ccff)' : '#333';
+    if (dot) dot.style.transform = on ? 'translateX(1.5rem)' : 'translateX(0)';
+}
+
 function setupEventListeners() {
     // 回车搜索
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
@@ -555,13 +566,20 @@ function setupEventListeners() {
         });
     }
 
-    const aiShortFilterToggleBind = document.getElementById('aiShortFilterToggle');
-    if (aiShortFilterToggleBind) {
-        aiShortFilterToggleBind.addEventListener('change', function (e) {
-            localStorage.setItem('aiShortFilterEnabled', e.target.checked ? 'true' : 'false');
-        });
-        aiShortFilterToggleBind.addEventListener('click', function (e) {
-            e.stopPropagation();
+    const aiShortFilterRow = document.getElementById('aiShortFilterRow');
+    if (aiShortFilterRow) {
+        const toggleAiShort = function (e) {
+            if (e) e.stopPropagation();
+            const next = localStorage.getItem('aiShortFilterEnabled') === 'false';
+            localStorage.setItem('aiShortFilterEnabled', next ? 'true' : 'false');
+            syncAiShortFilterToggle();
+        };
+        aiShortFilterRow.addEventListener('click', toggleAiShort);
+        aiShortFilterRow.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleAiShort(e);
+            }
         });
     }
 
@@ -745,7 +763,7 @@ async function search() {
         }
 
         // 过滤 AI 短剧 / 微短剧 / 解说 / 预告片（默认开启）
-        if (localStorage.getItem('aiShortFilterEnabled') !== 'false') {
+        if (isAiShortFilterOn()) {
             const aiBanned = [
                 'AI短剧', 'AI剧', 'AIGC', 'ai短剧', '智能短剧',
                 '微短剧', '竖屏短剧', '竖屏', '短剧',
