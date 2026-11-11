@@ -21,13 +21,80 @@ const SITE_CONFIG = {
 };
 
 // API站点配置
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-17 实测维护版：以下 13 个源已通过 Cloudflare 出口（tv.450460.xyz）逐个验证
+//   验证标准 = 搜索有结果 + 详情接口 ?ac=videolist&ids= 返回 m3u8（可直接播放）
+// 上游在 2025-08-12（commit c7b7dbb6）清空了内置源，本文件是重新补回的实测可用清单；
+// 失效源的原因见下方注释，源站恢复后可自行取消注释。
+// 原始源清单存档：https://telegra.ph/APIs-08-12
+// ─────────────────────────────────────────────────────────────────────────────
 const API_SITES = {
-    testSource: {
-        api: 'https://www.example.com/api.php/provide/vod',
-        name: '空内容测试源',
-        adult: true
-    }
-    //ARCHIVE https://telegra.ph/APIs-08-12
+    dyttzy: {
+        api: 'http://caiji.dyttzyapi.com/api.php/provide/vod',
+        name: '电影天堂资源'
+        // 切勿添加 detail 字段：该站 /index.php/vod/detail/id/xx.html 返回"身份验证"页，
+        // 一旦有 detail，应用会走 HTML 爬取路径导致播放失败；其详情接口已直接返回 m3u8
+    },
+    ruyi: {
+        api: 'https://cj.rycjapi.com/api.php/provide/vod',
+        name: '如意资源'
+    },
+    bfzy: {
+        api: 'https://bfzyapi.com/api.php/provide/vod',
+        name: '暴风资源'
+    },
+    ffzy: {
+        api: 'http://ffzy5.tv/api.php/provide/vod',
+        name: '非凡影视'
+        // 原上游配置带 detail: 'http://ffzy5.tv'，实测去掉后详情接口同样返回 m3u8，少一层爬取更稳
+    },
+    zy360: {
+        api: 'https://360zy.com/api.php/provide/vod',
+        name: '360资源'
+    },
+    iqiyi: {
+        api: 'https://www.iqiyizyapi.com/api.php/provide/vod',
+        name: 'iqiyi资源'
+    },
+    jisu: {
+        api: 'https://jszyapi.com/api.php/provide/vod',
+        name: '极速资源'
+    },
+    mdzy: {
+        api: 'https://www.mdzyapi.com/api.php/provide/vod',
+        name: '魔都资源'
+    },
+    zuid: {
+        api: 'https://api.zuidapi.com/api.php/provide/vod',
+        name: '最大资源'
+    },
+    baidu: {
+        api: 'https://api.apibdzy.com/api.php/provide/vod',
+        name: '百度云资源'
+    },
+    wujin: {
+        api: 'https://api.wujinapi.me/api.php/provide/vod',
+        name: '无尽资源'
+    },
+    ikun: {
+        api: 'https://ikunzyapi.com/api.php/provide/vod',
+        name: 'iKun资源'
+    },
+    lzi: {
+        api: 'https://cj.lziapi.com/api.php/provide/vod',   // 末尾不要加 /，否则会拼成 /vod/?ac=
+        name: '量子资源站'
+    },
+
+    // ===== 2026-09-17 实测不可用，停用留档（源站恢复后可取消注释）=====
+    // tyyszy: { api: 'https://tyyszy.com/api.php/provide/vod',            name: '天涯资源'   },  // 返回"暂不支持搜索"
+    // xiaomaomi: { api: 'https://zy.xmm.hk/api.php/provide/vod',          name: '小猫咪资源' },  // 代理 500 / 上游超时
+    // heimuer: { api: 'https://json.heimuer.xyz/api.php/provide/vod',     name: '黑木耳'     },  // 404，已跳首页
+    // wolong: { api: 'https://wolongzyw.com/api.php/provide/vod',         name: '卧龙资源'   },  // 返回反爬 HTML，非 JSON
+    // hwba: { api: 'https://cjhwba.com/api.php/provide/vod',              name: '华为吧资源' },  // 域名已无法连接
+    // mozhua: { api: 'https://mozhuazy.com/api.php/provide/vod',          name: '魔爪资源'   },  // 代理 500
+    // yinghua: { api: 'https://m3u8.apiyhzy.com/api.php/provide/vod',     name: '樱花资源'   },  // 403（WAF 拦截）
+    // wwzy: { api: 'https://wwzy.tv/api.php/provide/vod',                 name: '旺旺短剧'   },  // 301 到天涯，已合并
+    // dbzy: { api: 'https://dbzy.tv/api.php/provide/vod',                 name: '豆瓣资源'   },  // API 禁关键词搜索
 };
 
 // 定义合并方法
@@ -38,6 +105,18 @@ function extendAPISites(newSites) {
 // 暴露到全局
 window.API_SITES = API_SITES;
 window.extendAPISites = extendAPISites;
+
+// 封面等媒体走站内 /proxy/，避免源站防盗链；有 PASSWORD 时带上 auth（不加 t，避免懒加载超时）
+function proxyMediaUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string' || !/^https?:\/\//i.test(rawUrl)) return rawUrl;
+    let u = PROXY_URL + encodeURIComponent(rawUrl);
+    const hash = window.__ENV__ && window.__ENV__.PASSWORD;
+    if (hash && String(hash).length === 64 && !/^0+$/.test(hash)) {
+        u += '?auth=' + encodeURIComponent(hash);
+    }
+    return u;
+}
+window.proxyMediaUrl = proxyMediaUrl;
 
 
 // 添加聚合搜索的配置选项
