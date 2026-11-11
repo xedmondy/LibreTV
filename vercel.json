@@ -1,3 +1,14 @@
 {
-  "framework": "express"
+  "framework": "other",
+  "installCommand": "npm install --omit=dev",
+  "rewrites": [
+    {
+      "source": "/proxy/:path*",
+      "destination": "/api/proxy/:path*"
+    },
+    {
+      "source": "/s=:query",
+      "destination": "/index.html"
+    }
+  ]
 }

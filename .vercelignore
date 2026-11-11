@@ -1,0 +1,8 @@
+functions
+netlify
+Dockerfile
+docker-compose.yml
+.render.yaml
+server.mjs
+node_modules
+.git
