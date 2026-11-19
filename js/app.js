@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     syncAiShortFilterToggle();
+    loadCustomBlockWords();
 
     // 设置广告过滤开关初始状态
     const adFilterToggle = document.getElementById('adFilterToggle');
@@ -525,6 +526,42 @@ function toggleAiShortFilter(e) {
 }
 window.toggleAiShortFilter = toggleAiShortFilter;
 
+// ===== 自定义屏蔽词 =====
+const CUSTOM_BLOCK_KEY = 'customBlockWords';
+
+function getCustomBlockWords() {
+    try {
+        const raw = localStorage.getItem(CUSTOM_BLOCK_KEY) || '';
+        return raw.split(/[,，\s]+/).map(s => s.trim()).filter(Boolean);
+    } catch {
+        return [];
+    }
+}
+
+function saveCustomBlockWords() {
+    const input = document.getElementById('customBlockInput');
+    if (!input) return;
+    const words = input.value.split(/[,，\s]+/).map(s => s.trim()).filter(Boolean);
+    localStorage.setItem(CUSTOM_BLOCK_KEY, words.join(','));
+    const hint = document.getElementById('customBlockHint');
+    if (hint) {
+        hint.textContent = words.length ? `已保存 ${words.length} 个屏蔽词，重新搜索后生效` : '已清空屏蔽词';
+    }
+    if (typeof showToast === 'function') {
+        showToast(words.length ? '屏蔽词已保存' : '屏蔽词已清空', 'success');
+    }
+}
+window.saveCustomBlockWords = saveCustomBlockWords;
+
+function loadCustomBlockWords() {
+    const input = document.getElementById('customBlockInput');
+    if (!input) return;
+    input.value = localStorage.getItem(CUSTOM_BLOCK_KEY) || '';
+    const hint = document.getElementById('customBlockHint');
+    const n = getCustomBlockWords().length;
+    if (hint) hint.textContent = n ? `当前 ${n} 个屏蔽词生效中` : '';
+}
+
 function setupEventListeners() {
     // 回车搜索
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
@@ -768,14 +805,36 @@ async function search() {
 
         // 过滤 AI 短剧 / 微短剧 / 解说 / 预告片（默认开启）
         if (isAiShortFilterOn()) {
-            const aiBanned = [
-                'AI短剧', 'AI剧', 'AIGC', 'ai短剧', '智能短剧',
-                '微短剧', '竖屏短剧', '竖屏', '短剧',
-                '电影解说', '影视解说', '解说版', '预告片'
+            const typeBanned = [
+                '短剧', '微短剧', '竖屏', '爽剧', '爽文', '逆袭短剧', '都市短剧', '古装短剧',
+                '体育', '足球', '篮球', '网球', '排球', '乒乓', '羽毛球', '棒球', '橄榄球', '冰球',
+                '赛事', '奥运', '世界杯', '欧冠', '亚冠', '英超', '西甲', '意甲', '德甲', '法甲',
+                '中超', 'NBA', 'CBA', 'UFC', '拳击', '格斗', '赛车', 'F1', '斯诺克', '台球',
+                '高尔夫', '田径', '游泳', '健身', '解说', '预告'
             ];
+            const nameBanned = [
+                'AI短剧', 'AIGC', '微短剧', '竖屏短剧', '短剧',
+                '电影解说', '影视解说', '解说版', '预告片',
+                '一口气看完', '合集', '大结局'
+            ];
+            const customWords = getCustomBlockWords();
             allResults = allResults.filter(item => {
-                const hay = `${item.type_name || ''} ${item.vod_name || ''} ${item.vod_remarks || ''} ${item.vod_class || ''}`;
-                return !aiBanned.some(keyword => hay.includes(keyword));
+                const typeHay = `${item.type_name || ''} ${item.vod_class || ''}`;
+                const nameHay = `${item.vod_name || ''} ${item.vod_remarks || ''}`;
+                const allHay = `${typeHay} ${nameHay}`;
+                if (customWords.some(k => allHay.includes(k))) return false;
+                if (typeBanned.some(k => typeHay.includes(k))) return false;
+                if (nameBanned.some(k => nameHay.includes(k))) return false;
+                return true;
+            });
+        }
+
+        // 自定义屏蔽词（即使总开关关闭也生效）
+        const customOnly = getCustomBlockWords();
+        if (!isAiShortFilterOn() && customOnly.length > 0) {
+            allResults = allResults.filter(item => {
+                const hay = `${item.type_name || ''} ${item.vod_class || ''} ${item.vod_name || ''} ${item.vod_remarks || ''}`;
+                return !customOnly.some(k => hay.includes(k));
             });
         }
 

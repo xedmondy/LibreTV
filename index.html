@@ -14,8 +14,8 @@
     <link rel="manifest" href="manifest.json">
     
     <script src="libs/tailwindcss.min.js"></script>
-    <link rel="stylesheet" href="css/styles.css?v=20261111d">
-    <link rel="stylesheet" href="css/index.css?v=20261111d">
+    <link rel="stylesheet" href="css/styles.css?v=20261119a">
+    <link rel="stylesheet" href="css/index.css?v=20261119a">
 </head>
 <body class="page-bg text-white">
     <!-- 将历史记录按钮移到左上角，并缩小尺寸 -->
@@ -144,15 +144,27 @@
                 </div>
                 
                 <!-- AI短剧过滤开关 -->
-                <div id="aiShortFilterRow" role="switch" aria-checked="true" tabindex="0" onclick="toggleAiShortFilter(event)" class="flex items-center justify-between mb-3 pb-3 border-b border-[#222] cursor-pointer select-none">
+                <div id="aiShortFilterRow" role="switch" aria-checked="true" tabindex="0" onclick="toggleAiShortFilter(event)" class="flex items-center justify-between mb-3 pb-2 select-none">
                     <div>
-                        <span class="text-sm font-medium text-gray-400">过滤AI短剧</span>
-                        <p class="text-xs text-gray-500 mt-1">隐藏短剧、微短剧、解说、预告片</p>
+                        <span class="text-sm font-medium text-gray-400">过滤AI短剧/体育</span>
+                        <p class="text-xs text-gray-500 mt-1">隐藏短剧、微短剧、解说、预告片、赛事录像</p>
                     </div>
-                    <div class="relative w-12 h-6 flex-shrink-0">
+                    <div class="relative w-12 h-6 flex-shrink-0 cursor-pointer">
                         <div id="aiShortFilterBg" class="toggle-bg bg-[#333] w-12 h-6 rounded-full transition-colors duration-300 ease-in-out"></div>
                         <div id="aiShortFilterDot" class="toggle-dot absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-transform duration-300 ease-in-out"></div>
                     </div>
+                </div>
+
+                <!-- 自定义屏蔽词 -->
+                <div class="mb-3 pb-3 border-b border-[#222]">
+                    <label class="text-sm font-medium text-gray-400">自定义屏蔽词</label>
+                    <p class="text-xs text-gray-500 mt-1 mb-2">逗号分隔，命中标题或分类即隐藏</p>
+                    <div class="flex space-x-2">
+                        <input id="customBlockInput" type="text" placeholder="例：短剧大全,足球,纪录片"
+                            class="flex-1 bg-[#222] border border-[#333] rounded px-2 py-1 text-xs text-white placeholder-gray-600 focus:border-[#00ccff] focus:outline-none">
+                        <button onclick="saveCustomBlockWords()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">保存</button>
+                    </div>
+                    <p id="customBlockHint" class="text-xs text-gray-600 mt-1"></p>
                 </div>
 
                 <!-- 广告过滤开关 -->
@@ -425,15 +437,15 @@
         // 保存原始 js‑sha256 实现，避免被 password.js 覆盖
         window._jsSha256 = window.sha256;
     </script>
-    <script src="js/config.js?v=20261111d"></script>
-    <script src="js/proxy-auth.js?v=20261111d"></script>
-    <script src="js/customer_site.js?v=20261111d"></script>
-    <script src="js/ui.js?v=20261111d"></script>
-    <script src="js/api.js?v=20261111d"></script>
-    <script src="js/douban.js?v=20261111d"></script>
-    <script src="js/password.js?v=20261111d"></script>
-    <script src="js/search.js?v=20261111d"></script>
-    <script src="js/app.js?v=20261111d"></script>
+    <script src="js/config.js?v=20261119a"></script>
+    <script src="js/proxy-auth.js?v=20261119a"></script>
+    <script src="js/customer_site.js?v=20261119a"></script>
+    <script src="js/ui.js?v=20261119a"></script>
+    <script src="js/api.js?v=20261119a"></script>
+    <script src="js/douban.js?v=20261119a"></script>
+    <script src="js/password.js?v=20261119a"></script>
+    <script src="js/search.js?v=20261119a"></script>
+    <script src="js/app.js?v=20261119a"></script>
 
     <!-- PWA 注册 -->
     <script src="js/pwa-register.js"></script>
