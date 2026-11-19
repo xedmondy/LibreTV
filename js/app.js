@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     syncAiShortFilterToggle();
+    syncExactMatchToggle();
     loadCustomBlockWords();
 
     // 设置广告过滤开关初始状态
@@ -526,6 +527,31 @@ function toggleAiShortFilter(e) {
 }
 window.toggleAiShortFilter = toggleAiShortFilter;
 
+// ===== 标题精准匹配 =====
+function isExactMatchOn() {
+    return localStorage.getItem('exactMatchEnabled') !== 'false';
+}
+
+function syncExactMatchToggle() {
+    const on = isExactMatchOn();
+    const row = document.getElementById('exactMatchRow');
+    const bg = document.getElementById('exactMatchBg');
+    const dot = document.getElementById('exactMatchDot');
+    if (row) row.setAttribute('aria-checked', on ? 'true' : 'false');
+    if (bg) bg.style.backgroundColor = on ? 'var(--primary-color, #00ccff)' : '#333';
+    if (dot) dot.style.transform = on ? 'translateX(1.5rem)' : 'translateX(0)';
+}
+
+function toggleExactMatch(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    localStorage.setItem('exactMatchEnabled', isExactMatchOn() ? 'false' : 'true');
+    syncExactMatchToggle();
+}
+window.toggleExactMatch = toggleExactMatch;
+
 // ===== 自定义屏蔽词 =====
 const CUSTOM_BLOCK_KEY = 'customBlockWords';
 
@@ -741,10 +767,19 @@ async function search() {
             return (a.source_name || '').localeCompare(b.source_name || '');
         });
 
-        // 更新搜索结果计数
-        const searchResultsCount = document.getElementById('searchResultsCount');
-        if (searchResultsCount) {
-            searchResultsCount.textContent = allResults.length;
+        // 精准匹配：源站（暴风/量子等）关键词是模糊搜索，会返回大量无关片
+        if (localStorage.getItem('exactMatchEnabled') !== 'false') {
+            const normName = (s) => String(s || '')
+                .replace(/[\s\u200b\u200c\u200d\ufeff\u3000]/g, '')
+                .toLowerCase();
+            const q = normName(query);
+            if (q && allResults.length > 0) {
+                const hit = allResults.filter(item => normName(item.vod_name).includes(q));
+                // 命中才替换，避免把全部结果误清空
+                if (hit.length > 0) {
+                    allResults = hit;
+                }
+            }
         }
 
         // 显示结果区域，调整搜索区域
@@ -836,6 +871,12 @@ async function search() {
                 const hay = `${item.type_name || ''} ${item.vod_class || ''} ${item.vod_name || ''} ${item.vod_remarks || ''}`;
                 return !customOnly.some(k => hay.includes(k));
             });
+        }
+
+        // 所有过滤完成后再更新计数，保证数字和卡片一致
+        const searchResultsCount = document.getElementById('searchResultsCount');
+        if (searchResultsCount) {
+            searchResultsCount.textContent = allResults.length;
         }
 
         // 添加XSS保护，使用textContent和属性转义
