@@ -11,6 +11,10 @@ const PASSWORD_CONFIG = {
     verificationTTL: 90 * 24 * 60 * 60 * 1000  // 验证有效期（90天，约3个月）
 };
 
+// 关闭前端登录弹窗（代理仍由服务端 PASSWORD 鉴权，搜索/封面/播放照常）
+// 想恢复登录框改成 false
+window.DISABLE_PASSWORD_PROMPT = true;
+
 // 网站信息配置
 const SITE_CONFIG = {
     name: 'LibreTV',

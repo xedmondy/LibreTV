@@ -1,6 +1,13 @@
 // 密码保护功能
 
 /**
+ * 是否已关闭前端登录弹窗（由 js/config.js 的 window.DISABLE_PASSWORD_PROMPT 控制）
+ */
+function isPasswordPromptDisabled() {
+    return window.DISABLE_PASSWORD_PROMPT === true || window.DISABLE_PASSWORD_PROMPT === 'true';
+}
+
+/**
  * 检查是否设置了密码保护
  * 通过读取页面上嵌入的环境变量来检查
  */
@@ -26,6 +33,9 @@ function isPasswordRequired() {
  * 在关键操作前都应该调用此函数
  */
 function ensurePasswordProtection() {
+    if (isPasswordPromptDisabled()) {
+        return true;
+    }
     if (isPasswordRequired()) {
         showPasswordModal();
         throw new Error('Password protection is required');
@@ -68,6 +78,7 @@ async function verifyPassword(password) {
 // 验证状态检查
 function isPasswordVerified() {
     try {
+        if (isPasswordPromptDisabled()) return true;
         if (!isPasswordProtected()) return true;
 
         const stored = localStorage.getItem(PASSWORD_CONFIG.localStorageKey);
@@ -226,6 +237,12 @@ async function handlePasswordSubmit() {
  * 初始化密码验证系统
  */
 function initPasswordProtection() {
+    // 已关闭登录弹窗时直接放行（代理鉴权仍由服务端处理）
+    if (isPasswordPromptDisabled()) {
+        hidePasswordModal();
+        return;
+    }
+
     // 如果需要强制设置密码，显示警告弹窗
     if (isPasswordRequired()) {
         showPasswordModal();
