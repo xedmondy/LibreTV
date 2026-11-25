@@ -1,7 +1,7 @@
 // 豆瓣热门电影电视剧推荐功能
 
 // 豆瓣标签列表 - 修改为默认标签
-let defaultMovieTags = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '日综', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
+let defaultMovieTags = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '日综', '动画', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
 let defaultTvTags = ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
 
 // 用户标签列表 - 存储用户实际使用的标签（包含保留的系统标签和用户添加的自定义标签）
@@ -45,6 +45,21 @@ function saveUserTags() {
     } catch (e) {
         console.error('保存标签失败：', e);
         showToast('保存标签失败', 'error');
+    }
+}
+
+// 一次性迁移：给电影标签补上「动画」（电视剧端豆瓣无此标签，只保留「日本动画」）
+function migrateAnimationTag() {
+    try {
+        if (localStorage.getItem('doubanAnimTagMigrated') === 'true') return;
+        if (!movieTags.includes('动画')) {
+            const anchor = movieTags.indexOf('治愈');
+            movieTags.splice(anchor >= 0 ? anchor : movieTags.length, 0, '动画');
+            saveUserTags();
+        }
+        localStorage.setItem('doubanAnimTagMigrated', 'true');
+    } catch (e) {
+        console.error('迁移动画标签失败：', e);
     }
 }
 
@@ -96,6 +111,7 @@ function initDouban() {
 
     // 加载用户标签
     loadUserTags();
+    migrateAnimationTag();
 
     // 渲染电影/电视剧切换
     renderDoubanMovieTvSwitch();
