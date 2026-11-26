@@ -783,23 +783,43 @@ class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
 }
 
 // 过滤可疑的广告内容
+//
+// 重要：不要删除 #EXT-X-DISCONTINUITY。
+// 它是 HLS 的时间轴标记，表示前后分片的时间戳不连续（广告插播、拼接点都会用它）。
+// 删掉后 hls.js 会按连续时间重新累加 PTS，后半段的时长和进度条全部偏移，
+// 表现就是「后段出现广告时进度直接跳到结尾」。
+// 这里只在能明确判定为广告分片时删除该分片（EXTINF + 地址），并保留 DISCONTINUITY。
 function filterAdsFromM3U8(m3u8Content, strictMode = false) {
     if (!m3u8Content) return '';
 
-    // 按行分割M3U8内容
+    // 分片地址特征：只匹配路径明确属于广告目录的情况，避免误删正片
+    const AD_URL_PATTERN = /(^|\/)(ads?|adv|advert\w*|guanggao|gg)\//i;
+
     const lines = m3u8Content.split('\n');
-    const filteredLines = [];
+    const out = [];
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
+        const trimmed = line.trim();
 
-        // 只过滤#EXT-X-DISCONTINUITY标识
-        if (!line.includes('#EXT-X-DISCONTINUITY')) {
-            filteredLines.push(line);
+        // 分片地址行，且命中广告特征 -> 连同上方紧邻的 EXTINF 一起丢弃
+        if (trimmed && !trimmed.startsWith('#') && AD_URL_PATTERN.test(trimmed)) {
+            while (out.length > 0) {
+                const prev = out[out.length - 1].trim();
+                if (prev.startsWith('#EXTINF') || prev.startsWith('#EXT-X-BYTERANGE') ||
+                    prev.startsWith('#EXT-X-PROGRAM-DATE-TIME')) {
+                    out.pop();
+                    continue;
+                }
+                break;
+            }
+            continue;
         }
+
+        out.push(line);
     }
 
-    return filteredLines.join('\n');
+    return out.join('\n');
 }
 
 
