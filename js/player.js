@@ -402,6 +402,10 @@ function initPlayer(videoUrl) {
         return
     }
 
+    // 重置片尾广告识别状态（切换集数时重新检测）
+    tailAdStart = null;
+    tailAdSkipped = false;
+
     // 销毁旧实例
     if (art) {
         art.destroy();
@@ -506,6 +510,22 @@ function initPlayer(videoUrl) {
                     if (video.currentTime > 1) {
                         // 视频进度超过1秒，隐藏错误（如果存在）
                         document.getElementById('error').style.display = 'none';
+                    }
+
+                    // 片尾广告：到达识别出的起点直接停住，不再播广告
+                    if (adFilteringEnabled && tailAdStart && !tailAdSkipped &&
+                        Number.isFinite(video.currentTime) && video.currentTime >= tailAdStart - 0.4) {
+                        tailAdSkipped = true;
+                        try {
+                            video.pause();
+                            // 停在广告起点，前面的正片完整保留
+                            if (video.currentTime > tailAdStart) {
+                                video.currentTime = Math.min(tailAdStart, video.duration || tailAdStart);
+                            }
+                        } catch (e) { /* 忽略 */ }
+                        if (typeof showToast === 'function') {
+                            showToast('已跳过片尾广告', 'info');
+                        }
                     }
                 });
 
@@ -770,7 +790,14 @@ class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
                 callbacks.onSuccess = function (response, stats, context) {
                     // 如果是m3u8文件，处理内容以移除广告分段
                     if (response.data && typeof response.data === 'string') {
-                        // 过滤掉广告段 - 实现更精确的广告过滤逻辑
+                        // 识别片尾广告段（必须在改写前，基于原始时间轴）
+                        if (context.type === 'level') {
+                            try {
+                                tailAdStart = detectTailAdStart(response.data);
+                            } catch (e) {
+                                tailAdStart = null;
+                            }
+                        }
                         response.data = filterAdsFromM3U8(response.data, true);
                     }
                     return onSuccess(response, stats, context);
@@ -780,6 +807,61 @@ class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
             load(context, config, callbacks);
         };
     }
+}
+
+// 片尾广告起点（秒）。null 表示未识别到。
+let tailAdStart = null;
+let tailAdSkipped = false;
+
+/**
+ * 检测片尾广告段的起点时间。
+ *
+ * 判据：level playlist 中存在 #EXT-X-DISCONTINUITY（拼接点），
+ * 且最后一个拼接段明显短于主体（<=180s），主体本身够长（>=300s）。
+ * 满足时返回最后一段的起始时间，播放到该点即可跳过片尾广告。
+ */
+function detectTailAdStart(m3u8Content) {
+    const lines = m3u8Content.split('\n');
+    let cursor = 0;          // 已累加的时长
+    let pendingDuration = 0; // 当前分片的 EXTINF
+    let pendingDisc = false; // 下一分片是否是新段起点
+    const segStarts = [];    // 每个拼接段的起始时间
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        if (line.startsWith('#EXTINF:')) {
+            pendingDuration = parseFloat(line.slice(8)) || 0;
+            continue;
+        }
+        if (line.startsWith('#EXT-X-DISCONTINUITY')) {
+            pendingDisc = true;
+            continue;
+        }
+        if (line.startsWith('#')) continue;
+
+        // 分片地址行
+        if (pendingDisc || segStarts.length === 0) {
+            segStarts.push(cursor);
+            pendingDisc = false;
+        }
+        cursor += pendingDuration;
+        pendingDuration = 0;
+    }
+
+    const total = cursor;
+    if (total < 300) return null;            // 短视频不做处理
+    if (segStarts.length < 2) return null;   // 没有拼接点
+
+    const lastSegStart = segStarts[segStarts.length - 1];
+    const tailLen = total - lastSegStart;
+
+    // 片尾段过长说明它就是正片的一部分，不当作广告
+    if (tailLen <= 0 || tailLen > 180) return null;
+    if (lastSegStart < 300) return null;
+
+    return lastSegStart;
 }
 
 // 过滤可疑的广告内容
