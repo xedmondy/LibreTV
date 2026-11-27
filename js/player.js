@@ -796,32 +796,53 @@ class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
 //
 // 非凡影视等采集源在详情接口里返回的是 /share/<id> 这种分享页，
 // 真正地址藏在该页面脚本的 `const url = "/20261023/xxx/index.m3u8?sign=..."` 中（相对路径）。
-// 这里通过站内代理抓取该页面，取出后用原始地址做基准拼成绝对地址。
+// 解析顺序：先让浏览器直连（多数源站带 access-control-allow-origin: *），
+// 直连被 CORS 拦时再退回站内代理。
 async function resolvePlayableUrl(rawUrl) {
     if (!rawUrl) return rawUrl;
     if (/\.(m3u8|mp4|flv|mkv)(\?|$)/i.test(rawUrl)) return rawUrl;
 
+    const extract = (html) => {
+        if (!html) return null;
+        const patterns = [
+            /(?:const|let|var)\s+url\s*=\s*["']([^"']+\.m3u8[^"']*)["']/i,
+            /["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i,
+            /(?:src|source|videoUrl)\s*[:=]\s*["']([^"']+\.m3u8[^"']*)["']/i,
+        ];
+        for (const re of patterns) {
+            const m = html.match(re);
+            if (m && m[1]) {
+                try {
+                    return new URL(m[1], rawUrl).href;
+                } catch (e) {
+                    return m[1];
+                }
+            }
+        }
+        return null;
+    };
+
+    // 1) 直连
+    try {
+        const res = await fetch(rawUrl, { mode: 'cors', credentials: 'omit' });
+        if (res.ok) {
+            const real = extract(await res.text());
+            if (real) return real;
+        }
+    } catch (e) {
+        // 落到代理
+    }
+
+    // 2) 站内代理
     try {
         const proxyUrl = window.ProxyAuth && window.ProxyAuth.addAuthToProxyUrl
             ? await window.ProxyAuth.addAuthToProxyUrl(PROXY_URL + encodeURIComponent(rawUrl))
             : PROXY_URL + encodeURIComponent(rawUrl);
 
         const res = await fetch(proxyUrl, { headers: { 'User-Agent': navigator.userAgent } });
-        if (!res.ok) return rawUrl;
-
-        const html = await res.text();
-
-        const patterns = [
-            /(?:const|let|var)\s+url\s*=\s*["']([^"']+\.m3u8[^"']*)["']/i,
-            /["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i,
-            /(?:src|source|videoUrl)\s*[:=]\s*["']([^"']+\.m3u8[^"']*)["']/i,
-        ];
-
-        for (const re of patterns) {
-            const m = html.match(re);
-            if (m && m[1]) {
-                return new URL(m[1], rawUrl).href;
-            }
+        if (res.ok) {
+            const real = extract(await res.text());
+            if (real) return real;
         }
     } catch (e) {
         console.warn('解析播放地址失败:', e.message);
