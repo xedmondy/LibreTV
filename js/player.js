@@ -81,8 +81,7 @@ window.addEventListener('load', function () {
 let currentVideoTitle = '';
 let currentEpisodeIndex = 0;
 let art = null; // 用于 ArtPlayer 实例
-let currentHls = null; // 跟踪当前HLS实例
-let currentEpisodes = [];
+let currentHls = null; // 跟踪当前HLS实例let currentEpisodes = [];
 let episodesReversed = false;
 let autoplayEnabled = true; // 默认开启自动连播
 let videoHasEnded = false; // 跟踪视频是否已经自然结束
@@ -510,8 +509,19 @@ function initPlayer(videoUrl) {
 
                 });
 
-                hls.loadSource(url);
-                hls.attachMedia(video);
+                // 部分采集源（如非凡影视）返回的是 /share/xxx 分享页，
+                // 真实 m3u8 藏在该页面的 `const url = "..."` 里，需要先解析再交给 hls.js。
+                (async () => {
+                    let finalUrl = url;
+                    try {
+                        finalUrl = await resolvePlayableUrl(url);
+                    } catch (e) {
+                        finalUrl = url;
+                    }
+
+                    hls.loadSource(finalUrl);
+                    hls.attachMedia(video);
+                })();
 
                 // enable airplay, from https://github.com/video-dev/hls.js/issues/5989
                 // 检查是否已存在source元素，如果存在则更新，不存在则创建
@@ -780,6 +790,44 @@ class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
             load(context, config, callbacks);
         };
     }
+}
+
+// 把分享页地址解析成真实可播放地址
+//
+// 非凡影视等采集源在详情接口里返回的是 /share/<id> 这种分享页，
+// 真正地址藏在该页面脚本的 `const url = "/20261023/xxx/index.m3u8?sign=..."` 中（相对路径）。
+// 这里通过站内代理抓取该页面，取出后用原始地址做基准拼成绝对地址。
+async function resolvePlayableUrl(rawUrl) {
+    if (!rawUrl) return rawUrl;
+    if (/\.(m3u8|mp4|flv|mkv)(\?|$)/i.test(rawUrl)) return rawUrl;
+
+    try {
+        const proxyUrl = window.ProxyAuth && window.ProxyAuth.addAuthToProxyUrl
+            ? await window.ProxyAuth.addAuthToProxyUrl(PROXY_URL + encodeURIComponent(rawUrl))
+            : PROXY_URL + encodeURIComponent(rawUrl);
+
+        const res = await fetch(proxyUrl, { headers: { 'User-Agent': navigator.userAgent } });
+        if (!res.ok) return rawUrl;
+
+        const html = await res.text();
+
+        const patterns = [
+            /(?:const|let|var)\s+url\s*=\s*["']([^"']+\.m3u8[^"']*)["']/i,
+            /["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i,
+            /(?:src|source|videoUrl)\s*[:=]\s*["']([^"']+\.m3u8[^"']*)["']/i,
+        ];
+
+        for (const re of patterns) {
+            const m = html.match(re);
+            if (m && m[1]) {
+                return new URL(m[1], rawUrl).href;
+            }
+        }
+    } catch (e) {
+        console.warn('解析播放地址失败:', e.message);
+    }
+
+    return rawUrl;
 }
 
 // 过滤广告段（M3U8 层面真正删除）
