@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
     syncAiShortFilterToggle();
     syncExactMatchToggle();
     loadCustomBlockWords();
+    loadSkipIntro();
 
     // 设置广告过滤开关初始状态
     const adFilterToggle = document.getElementById('adFilterToggle');
@@ -526,6 +527,39 @@ function toggleAiShortFilter(e) {
     syncAiShortFilterToggle();
 }
 window.toggleAiShortFilter = toggleAiShortFilter;
+
+// ===== 跳过片头 =====
+const SKIP_INTRO_KEY = 'skipIntroSeconds';
+
+function getSkipIntroSeconds() {
+    const n = parseInt(localStorage.getItem(SKIP_INTRO_KEY) || '0', 10);
+    return Number.isFinite(n) && n > 0 ? Math.min(n, 600) : 0;
+}
+
+function saveSkipIntro() {
+    const input = document.getElementById('skipIntroInput');
+    if (!input) return;
+    const n = parseInt(input.value || '0', 10);
+    const seconds = Number.isFinite(n) && n > 0 ? Math.min(n, 600) : 0;
+    localStorage.setItem(SKIP_INTRO_KEY, String(seconds));
+    const hint = document.getElementById('skipIntroHint');
+    if (hint) hint.textContent = seconds ? `每集自动跳过前 ${seconds} 秒` : '已关闭';
+    if (typeof showToast === 'function') {
+        showToast(seconds ? `已设置跳过片头 ${seconds} 秒` : '已关闭跳过片头', 'success');
+    }
+}
+
+function loadSkipIntro() {
+    const input = document.getElementById('skipIntroInput');
+    if (!input) return;
+    const seconds = getSkipIntroSeconds();
+    input.value = String(seconds);
+    const hint = document.getElementById('skipIntroHint');
+    if (hint) hint.textContent = seconds ? `每集自动跳过前 ${seconds} 秒` : '';
+}
+
+window.saveSkipIntro = saveSkipIntro;
+window.getSkipIntroSeconds = getSkipIntroSeconds;
 
 // ===== 标题精准匹配 =====
 function isExactMatchOn() {

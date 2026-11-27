@@ -192,6 +192,19 @@
                     </div>
                 </div>
                 
+                <!-- 跳过片头 -->
+                <div class="mb-3 pb-3 border-b border-[#222]">
+                    <label class="text-sm font-medium text-gray-400">跳过片头</label>
+                    <p class="text-xs text-gray-500 mt-1 mb-2">源站把广告压在正片里时，填秒数（0 = 不跳）</p>
+                    <div class="flex items-center space-x-2">
+                        <input id="skipIntroInput" type="number" min="0" max="600" step="5" value="0"
+                            class="w-24 bg-[#222] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#00ccff] focus:outline-none">
+                        <span class="text-xs text-gray-500">秒</span>
+                        <button onclick="saveSkipIntro()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">保存</button>
+                    </div>
+                    <p id="skipIntroHint" class="text-xs text-gray-600 mt-1"></p>
+                </div>
+
                 <!-- 豆瓣热门开关 -->
                 <div class="flex items-center justify-between">
                     <div>

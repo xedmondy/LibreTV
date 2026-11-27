@@ -90,6 +90,7 @@ let shortcutHintTimeout = null; // 用于控制快捷键提示显示时间
 let adFilteringEnabled = true; // 默认开启广告过滤
 let progressSaveInterval = null; // 定期保存进度的计时器
 let currentVideoUrl = ''; // 记录当前实际的视频URL
+let introSkipApplied = false; // 当前集是否已执行「跳过片头」
 const isWebkit = (typeof window.webkitConvertPointFromNodeToPage === 'function')
 Artplayer.FULLSCREEN_WEB_IN_BODY = true;
 
@@ -407,6 +408,9 @@ function initPlayer(videoUrl) {
         art = null;
     }
 
+    // 每集重置「跳过片头」状态
+    introSkipApplied = false;
+
     // 配置HLS.js选项
     const hlsConfig = {
         debug: false,
@@ -498,6 +502,19 @@ function initPlayer(videoUrl) {
                     playbackStarted = true;
                     document.getElementById('player-loading').style.display = 'none';
                     document.getElementById('error').style.display = 'none';
+
+                    // 跳过片头（源站把广告压在正片里时，只能按秒数跳）
+                    if (!introSkipApplied) {
+                        introSkipApplied = true;
+                        let skip = 0;
+                        try {
+                            skip = parseInt(localStorage.getItem('skipIntroSeconds') || '0', 10) || 0;
+                        } catch (e) { skip = 0; }
+                        if (skip > 0 && Number.isFinite(video.duration) &&
+                            video.duration > skip + 30 && video.currentTime < skip) {
+                            try { video.currentTime = skip; } catch (e) { /* 忽略 */ }
+                        }
+                    }
                 });
 
                 // 监听视频进度事件
