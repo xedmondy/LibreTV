@@ -911,12 +911,27 @@ function filterAdsFromM3U8(m3u8Content, strictMode = false) {
     // 没有拼接点，无法判定广告
     if (segments.length < 2) return m3u8Content;
 
+    const totalDuration = segments.reduce((sum, seg) => sum + seg.duration, 0);
+    const maxDuration = segments.reduce((max, seg) => Math.max(max, seg.duration), 0);
+
+    // 判定广告段，必须同时满足：
+    // 1. 绝对时长够短
+    // 2. 分片数够少
+    // 3. 相对最长段占比很小——有源把正片切成几十段 40s 的小段，
+    //    只用绝对阈值会把整部正片当成广告删掉，导致「视频只剩几分钟」
     const isAdSegment = (seg) =>
-        seg.duration > 0 && seg.duration <= AD_MAX_DURATION && seg.frags <= AD_MAX_FRAGS;
+        seg.duration > 0 &&
+        seg.duration <= AD_MAX_DURATION &&
+        seg.frags <= AD_MAX_FRAGS &&
+        seg.duration <= maxDuration * 0.25;
 
     const kept = segments.filter(seg => !isAdSegment(seg));
     // 全被判成广告、或压根没广告，一律原样返回，避免把整集删空
     if (kept.length === 0 || kept.length === segments.length) return m3u8Content;
+
+    // 安全阀：删除后必须保留至少 70% 的原始时长，否则放弃过滤，宁可不跳广告
+    const keptDuration = kept.reduce((sum, seg) => sum + seg.duration, 0);
+    if (totalDuration > 0 && keptDuration < totalDuration * 0.7) return m3u8Content;
 
     const out = header.slice();
     kept.forEach((seg, index) => {
